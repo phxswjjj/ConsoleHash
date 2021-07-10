@@ -6,6 +6,7 @@ namespace ConsoleHash
 {
     class HashFile
     {
+        public string FileFullPath;
         public string FilePath;
         public string FileName;
         public string Hash;

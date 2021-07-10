@@ -14,6 +14,20 @@ namespace ConsoleHash
 
         static void Main(string[] args)
         {
+            try
+            {
+                Run(args);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+
+            WaitToContinue();
+        }
+
+        private static void Run(string[] args)
+        {
             var exeFilePath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
             var exeFileName = Path.GetFileName(exeFilePath);
             var rootDir = Path.GetDirectoryName(exeFilePath);
@@ -64,7 +78,7 @@ namespace ConsoleHash
                 var relativeFilePath = Path.GetRelativePath(rootDir, filePath);
                 if (exeFileName == relativeFilePath) continue;
                 var fileName = Path.GetFileName(filePath);
-                var hf = new HashFile() { FilePath = relativeFilePath, FileName = fileName };
+                var hf = new HashFile() { FilePath = relativeFilePath, FileName = fileName, FileFullPath = filePath };
                 hfs.Add(hf);
             }
             Console.WriteLine();
@@ -78,15 +92,26 @@ namespace ConsoleHash
                 new ParallelOptions() { MaxDegreeOfParallelism = threadCount },
                 hf =>
                 {
-                    var ms = new Random().Next(10);
-                    Thread.Sleep(ms);
+                    ComputeHash(hf);
                     ProcessedCount++;
                 });
 
             progressJob.Join();
             Console.WriteLine();
+        }
 
-            WaitToContinue();
+        private static void ComputeHash(HashFile hf)
+        {
+            var f = new FileInfo(hf.FilePath);
+            using (var md5 = System.Security.Cryptography.MD5.Create())
+            {
+                using (var reader = new StreamReader(hf.FileFullPath))
+                {
+                    var bs = md5.ComputeHash(reader.BaseStream);
+                    var hash = BitConverter.ToString(bs).Replace("-", "");
+                    hf.Hash = hash;
+                }
+            }
         }
 
         private static void WaitToContinue()
