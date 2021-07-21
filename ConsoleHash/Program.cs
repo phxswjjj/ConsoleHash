@@ -9,9 +9,6 @@ namespace ConsoleHash
 {
     class Program
     {
-        static int TotalFiles;
-        static int ProcessedCount;
-
         static void Main(string[] args)
         {
             try
@@ -83,20 +80,17 @@ namespace ConsoleHash
             }
             Console.WriteLine();
 
-            TotalFiles = hfs.Count;
-
-            Thread progressJob = new Thread(ProgressBar) { IsBackground = true };
-            progressJob.Start();
+            ProgressCounter.Start(hfs.Count);
 
             Parallel.ForEach<HashFile>(hfs,
                 new ParallelOptions() { MaxDegreeOfParallelism = threadCount },
                 hf =>
                 {
                     ComputeHash(hf);
-                    ProcessedCount++;
+                    ProgressCounter.Increase();
                 });
 
-            progressJob.Join();
+            ProgressCounter.Join();
             Console.WriteLine();
         }
 
@@ -119,43 +113,6 @@ namespace ConsoleHash
             Console.WriteLine();
             Console.WriteLine("press [ENTER] to continue..");
             Console.ReadLine();
-        }
-
-        private static void ProgressBar()
-        {
-            var sw = new Stopwatch();
-            sw.Start();
-
-            while (true)
-            {
-                var elapsed = sw.Elapsed.ToString();
-                Console.CursorLeft = 0;
-                Console.WriteLine($"Total: {TotalFiles:#,##0}, Processed: {ProcessedCount:#,##0}, Elapsed: {elapsed}");
-
-                var totalBlocks = 20;
-                var progressTitle = "Progress: ";
-                decimal completedRatio = (int)((decimal)ProcessedCount / TotalFiles * 100);
-                completedRatio /= 100;
-                var completedBlocks = (int)(completedRatio * totalBlocks);
-                var unCompletedBlocks = totalBlocks - completedBlocks;
-
-                Console.CursorLeft = 0;
-
-                Console.Write(progressTitle);
-                Console.CursorLeft += 2;
-
-                Console.Write(new string('#', completedBlocks));
-                Console.Write(new string('-', unCompletedBlocks));
-                Console.CursorLeft += 2;
-
-                var completedPercentText = completedRatio.ToString("P0");
-                Console.Write(completedPercentText);
-
-                if (ProcessedCount == TotalFiles) break;
-                Thread.Sleep(200);
-                Console.CursorTop -= 1;
-            }
-            sw.Stop();
         }
     }
 }
